@@ -52,3 +52,9 @@ next-env.d.ts
 # personal notes - kept local, not committed
 /VIDEO-SCRIPT.md
 /SUBMISSION-GUIDE.md
+
+# repo-root local files (not part of the project)
+/.claude/
+/.impeccable/
+/Video/
+/*.mp4
