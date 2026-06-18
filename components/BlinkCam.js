@@ -52,9 +52,9 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
     closeRef.current = t.close; openRef.current = t.open;
     saveThresholds(t);
     try { cues.select(); } catch {}
-    setPhase("done");
+    setPhase("instructions");
     speak("All set. Open your eyes.");
-    timers.current.push(setTimeout(() => { setPhase("detect"); cb.current.onCalibrating?.(false); }, 1600));
+    timers.current.push(setTimeout(() => { setPhase("detect"); cb.current.onCalibrating?.(false); }, 5000));
   };
 
   const startCalibration = () => {
@@ -211,6 +211,13 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
                 <span className="calib-ico done"><LIcon name="Check" size={34} stroke={2.4} /></span>
                 <h2>All set</h2>
                 <p>Eye control is tuned to you. Take a long blink to choose.</p>
+              </>
+            )}
+            {phase === "instructions" && (
+              <>
+                <span className="calib-ico done"><LIcon name="Zap" size={34} stroke={2.4} /></span>
+                <h2>Ready to go</h2>
+                <p>The highlight moves on its own. When you see what you want, hold your eyes closed for about half a second.</p>
               </>
             )}
           </div>
