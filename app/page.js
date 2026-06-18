@@ -174,9 +174,9 @@ export default function Aloud() {
         key={item.key}
         className={cls}
         data-cat={catKey}
-        onMouseEnter={() => { if (camLoading) return; setFocusIdx(idx); setHovering(true); }}
+        onMouseEnter={() => { if (camLoading || (camOn && camReady)) return; setFocusIdx(idx); setHovering(true); }}
         onMouseLeave={() => { setHovering(false); setDwellLocked(false); }}
-        onClick={() => { if (camLoading) return; select(item); }}
+        onClick={() => { if (camLoading || (camOn && camReady)) return; select(item); }}
         aria-label={item.label}
       >
         <span className="c-ico"><LIcon name={item.icon} size={item.type === "cat" ? 30 : 26} /></span>
