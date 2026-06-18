@@ -39,12 +39,6 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
 
   const setPhase = (p) => { phaseRef.current = p; setPhaseState(p); };
   const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
-  const speak = (t) => {
-    try {
-      if (cb.current.say) cb.current.say(t);
-      else if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(t));
-    } catch {}
-  };
 
   const finishCalibration = () => {
     sampleRef.current = null;
@@ -53,7 +47,6 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
     saveThresholds(t);
     try { cues.select(); } catch {}
     setPhase("instructions");
-    speak("All set. Open your eyes.");
     timers.current.push(setTimeout(() => { setPhase("detect"); cb.current.onCalibrating?.(false); }, 5000));
   };
 
@@ -62,16 +55,13 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
     openS.current = []; closedS.current = []; sampleRef.current = null;
     cb.current.onCalibrating?.(true);
     setPhase("open");
-    speak("First, keep your eyes open and look at the screen.");
     timers.current.push(setTimeout(() => { sampleRef.current = "open"; }, 700));
     timers.current.push(setTimeout(() => {
       sampleRef.current = null; setPhase("ready");
-      speak("Now get ready. When you hear the beep, close your eyes and hold them shut.");
     }, 2700));
     timers.current.push(setTimeout(() => {
       setPhase("closed");
       try { cues.add(); } catch {}
-      speak("Close your eyes now.");
     }, 5000));
     timers.current.push(setTimeout(() => { sampleRef.current = "closed"; }, 5700));
     timers.current.push(setTimeout(finishCalibration, 7700));
