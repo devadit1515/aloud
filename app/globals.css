@@ -223,7 +223,7 @@ button { font-family: inherit; cursor: pointer; color: inherit; background: none
 @keyframes revealUp { from { opacity: 0; transform: translateY(22px); filter: blur(6px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
 
 
-.cam-bubble { position: fixed; bottom: 22px; right: 22px; z-index: 40; width: 158px; border-radius: 16px; overflow: hidden; background: #1a1712; border: 1px solid var(--line-2); box-shadow: 0 18px 40px -20px rgba(33, 28, 22, 0.6); }
+.cam-bubble { position: fixed; bottom: 22px; right: 22px; z-index: 40; width: 196px; border-radius: 16px; overflow: hidden; background: #1a1712; border: 1px solid var(--line-2); box-shadow: 0 18px 40px -20px rgba(33, 28, 22, 0.6); }
 .cam-bubble video { width: 100%; display: block; transform: scaleX(-1); filter: grayscale(0.3) contrast(1.05); }
 .cam-bubble .cam-state { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 11px; font-family: var(--main); font-size: 11px; font-weight: 700; color: #f3efe7; display: flex; align-items: center; gap: 7px; background: linear-gradient(transparent, rgba(0,0,0,0.7)); }
 .cam-bubble .cam-state .ring { width: 8px; height: 8px; border-radius: 50%; background: #a59c8d; }
@@ -240,6 +240,17 @@ button { font-family: inherit; cursor: pointer; color: inherit; background: none
 .cam-bubble.fired .cam-state .ring { background: #7fc99a; box-shadow: 0 0 8px #7fc99a; }
 .cam-bubble .gaze-arrow { position: absolute; inset: 0; display: grid; place-items: center; font-size: 46px; color: #fff; text-shadow: 0 2px 14px rgba(0,0,0,0.6); animation: arrowpop 0.18s var(--spring); }
 @keyframes arrowpop { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
+
+.cam-min { position: absolute; top: 7px; right: 7px; z-index: 3; width: 27px; height: 27px; border-radius: 50%; display: grid; place-items: center; color: #f3efe7; background: rgba(0,0,0,0.42); opacity: 0.55; transition: opacity 0.18s, background 0.18s; }
+.cam-bubble:hover .cam-min { opacity: 1; }
+.cam-min:hover { background: rgba(0,0,0,0.7); }
+
+.cam-expand { display: none; }
+.cam-bubble.pinned { width: 46px; height: 58px; right: 0; border-right: 0; border-radius: 16px 0 0 16px; box-shadow: -10px 16px 36px -20px rgba(33, 28, 22, 0.65); }
+.cam-bubble.pinned .cam-min { display: none; }
+.cam-bubble.pinned video, .cam-bubble.pinned .cam-state, .cam-bubble.pinned .eyemeter, .cam-bubble.pinned .cam-hold { visibility: hidden; }
+.cam-bubble.pinned .cam-expand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #f3efe7; background: #1a1712; cursor: pointer; animation: announceIn 0.2s var(--ease); }
+.cam-bubble.pinned .cam-expand:hover { color: var(--clay); }
 
 
 .overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(243, 239, 231, 0.72); backdrop-filter: blur(8px); }
@@ -308,7 +319,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; background: none
 
 @media (max-width: 720px) {
   .choices[data-cols="3"], .choices[data-cols="4"] { grid-template-columns: repeat(2, 1fr); }
-  .cam-bubble { width: 120px; }
+  .cam-bubble { width: 150px; }
+  .cam-bubble.pinned { width: 46px; }
 }
 
 @media (max-height: 720px) {
