@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { icons } from "lucide-react";
 import { cues } from "@/lib/cues.mjs";
-import { computeThresholds, saveThresholds, DEFAULTS } from "@/lib/blink.mjs";
+import { computeThresholds, saveThresholds, loadThresholds, DEFAULTS } from "@/lib/blink.mjs";
 
 function LIcon({ name, size = 26, stroke = 1.6 }) {
   const Cmp = icons[name] || icons.Circle;
@@ -25,6 +25,7 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
   const [hold, setHold] = useState(0);
   const [fired, setFired] = useState(false);
   const [phase, setPhaseState] = useState("detect");
+  const [minimized, setMinimized] = useState(false);
 
   const closeRef = useRef(DEFAULTS.close);
   const openRef = useRef(DEFAULTS.open);
@@ -48,6 +49,16 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
     try { cues.select(); } catch {}
     setPhase("instructions");
     timers.current.push(setTimeout(() => { setPhase("detect"); cb.current.onCalibrating?.(false); }, 5000));
+  };
+
+  const skipCalibration = () => {
+    clearTimers();
+    sampleRef.current = null;
+    const saved = loadThresholds();
+    if (saved) { closeRef.current = saved.close; openRef.current = saved.open; }
+    try { cues.select(); } catch {}
+    setPhase("detect");
+    cb.current.onCalibrating?.(false);
   };
 
   const startCalibration = () => {
@@ -183,6 +194,7 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
                 <p>A quick check tunes blinking to your eyes and lighting. Tap Start and follow along — it takes about ten seconds.</p>
                 <div className="calib-actions">
                   <button className="calib-go" onClick={startCalibration}>Start</button>
+                  <button className="calib-skip" onClick={skipCalibration}>Skip for now</button>
                 </div>
               </>
             )}
@@ -214,7 +226,10 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
         </div>
       )}
 
-      <div className={`cam-bubble ${armed ? "armed" : ""} ${closing ? "blinking" : ""} ${fired ? "fired" : ""}`}>
+      <div className={`cam-bubble ${armed ? "armed" : ""} ${closing ? "blinking" : ""} ${fired ? "fired" : ""} ${minimized ? "pinned" : ""}`}>
+        <button className="cam-min" onClick={() => setMinimized(true)} aria-label="Minimize video" title="Minimize video">
+          <LIcon name="PanelRightClose" size={15} stroke={2} />
+        </button>
         <div className="eyemeter"><i style={{ width: `${Math.round(meter * 100)}%` }} /></div>
         <div className="cam-hold"><i style={{ width: `${Math.round(hold * 100)}%` }} /></div>
         <video ref={videoRef} muted playsInline />
@@ -222,6 +237,10 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
           <span className="ring" />
           {!armed ? "Starting camera…" : calibrating ? "Calibrating…" : fired ? "Got it ✓" : closing ? "Hold…" : "Tracking your eyes"}
         </div>
+        <button className="cam-expand" onClick={() => setMinimized(false)} aria-label="Show video" title="Show video">
+          <LIcon name="Eye" size={17} stroke={2} />
+          <LIcon name="ChevronLeft" size={13} stroke={2.6} />
+        </button>
       </div>
     </>
   );
