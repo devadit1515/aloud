@@ -1,5 +1,7 @@
 # Aloud
 
+
+
 A communication tool for people who can only move their eyes — ALS, locked-in syndrome, cerebral palsy, paralysis.
 
 Live: https://aloud-pink.vercel.app
