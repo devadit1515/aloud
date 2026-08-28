@@ -5,9 +5,11 @@ import dynamic from "next/dynamic";
 import { icons } from "lucide-react";
 import { CATEGORIES, WORDS } from "@/lib/board";
 import { useSpeech } from "@/lib/useSpeech";
+import { loadTelegramConfig, sendToTelegram } from "@/lib/telegram";
 import Speller from "@/components/Speller";
 
 const BlinkCam = dynamic(() => import("@/components/BlinkCam"), { ssr: false });
+const TelegramSetup = dynamic(() => import("@/components/TelegramSetup"), { ssr: false });
 
 function LIcon({ name, size = 30, stroke = 1.5 }) {
   const Cmp = icons[name] || icons.Circle;
@@ -32,12 +34,32 @@ export default function Aloud() {
   const [calibrating, setCalibrating] = useState(false);
   const [recalNonce, setRecalNonce] = useState(0);
 
+  const [showTelegram, setShowTelegram] = useState(false);
+  const [tgConfigured, setTgConfigured] = useState(false);
+  const tgConfigRef = useRef(null);
+
   const speech = useSpeech();
   const spellRef = useRef(null);
+
+  // Load Telegram config on mount and listen for changes
+  useEffect(() => {
+    const cfg = loadTelegramConfig();
+    tgConfigRef.current = cfg;
+    setTgConfigured(!!cfg);
+  }, []);
 
   const pushRecent = useCallback((t) => {
     setRecents((r) => [t, ...r.filter((x) => x !== t)].slice(0, 5));
   }, []);
+
+  // Send every spoken message to Telegram
+  const lastTgText = useRef("");
+  useEffect(() => {
+    if (!speech.announce?.text || speech.announce.text === lastTgText.current) return;
+    lastTgText.current = speech.announce.text;
+    const cfg = tgConfigRef.current || loadTelegramConfig();
+    if (cfg) sendToTelegram(speech.announce.text, cfg);
+  }, [speech.announce]);
 
   const dismissAnnounce = useCallback(() => {
     const rt = speech.announce?.returnTo || "home";
@@ -135,13 +157,41 @@ export default function Aloud() {
 
   function flashToast(m) { setToast(m); setTimeout(() => setToast(""), 4000); }
 
+  const handleTgConfigured = useCallback(() => {
+    const cfg = loadTelegramConfig();
+    tgConfigRef.current = cfg;
+    setTgConfigured(!!cfg);
+    setShowTelegram(false);
+    // Now actually start
+    setStarted(true);
+    setCamOn(true);
+    speech.primeSpeech();
+  }, [speech]);
+
+  const handleTgSkip = useCallback(() => {
+    setShowTelegram(false);
+    setStarted(true);
+    setCamOn(true);
+    speech.primeSpeech();
+  }, [speech]);
+
+  if (!started && showTelegram) {
+    return (
+      <TelegramSetup onConfigured={handleTgConfigured} onSkip={handleTgSkip} />
+    );
+  }
+
   if (!started) {
     return (
       <Intro
         onBegin={() => {
-          setStarted(true);
-          setCamOn(true);
-          speech.primeSpeech();
+          if (tgConfigured) {
+            setStarted(true);
+            setCamOn(true);
+            speech.primeSpeech();
+          } else {
+            setShowTelegram(true);
+          }
         }}
       />
     );
@@ -210,6 +260,13 @@ export default function Aloud() {
               <span className="eye-status" data-on={camOn}>
                 <LIcon name="Eye" size={15} stroke={2} /> {camOn ? "Eye control on" : "Camera off"}
               </span>
+              <button className="ghost-btn" onClick={() => {
+                tgConfigRef.current = loadTelegramConfig();
+                setTgConfigured(!!tgConfigRef.current);
+                setShowTelegram(true);
+              }}>
+                <LIcon name="MessageCircle" size={16} stroke={2} /> {tgConfigured ? "Telegram ✓" : "Connect Telegram"}
+              </button>
               <button className="ghost-btn" onClick={() => setShowHelp(true)}>
                 <LIcon name="HelpCircle" size={16} stroke={2} /> Help
               </button>
@@ -257,6 +314,12 @@ export default function Aloud() {
       {speech.announce && <Announce data={speech.announce} speaking={speech.speaking} onDone={dismissAnnounce} />}
       {toast && <div className="toast">{toast}</div>}
       {showHelp && <HelpSheet onClose={() => setShowHelp(false)} onRecalibrate={() => { setShowHelp(false); setRecalNonce((n) => n + 1); }} />}
+      {showTelegram && (
+        <TelegramSetup
+          onConfigured={handleTgConfigured}
+          onSkip={() => setShowTelegram(false)}
+        />
+      )}
     </div>
   );
 }
