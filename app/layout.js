@@ -18,10 +18,27 @@ const fraunces = Fraunces({
   display: "swap",
 });
 
+const title = "Aloud — Speak with just your eyes";
+const description =
+  "Eye-controlled communication in any browser, using only a webcam. A long blink selects, a few letters become full sentences with AI, and Aloud speaks them out loud. No special hardware, no install.";
+
 export const metadata = {
-  title: "Aloud — A voice for anyone who can't speak or type",
-  description:
-    "Aloud turns the smallest gesture — a blink, a tap, a switch — into full, natural spoken sentences using AI. Communication for people with ALS, cerebral palsy, paralysis, and more.",
+  metadataBase: new URL("https://aloud-pink.vercel.app"),
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    url: "/",
+    siteName: "Aloud",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary",
+    title,
+    description,
+  },
 };
 
 export const viewport = {
