@@ -25,8 +25,9 @@ export default function Aloud() {
 
   const [view, setView] = useState("home");
   const [focusIdx, setFocusIdx] = useState(null);
-  const [hovering, setHovering] = useState(false);
-  const [dwellLocked, setDwellLocked] = useState(false);
+  // [HOVER-DWELL DISABLED] — mouse hover no longer moves focus or auto-selects; click instead.
+  // const [hovering, setHovering] = useState(false);
+  // const [dwellLocked, setDwellLocked] = useState(false);
   const [eyesClosed, setEyesClosed] = useState(false);
   const [recents, setRecents] = useState([]);
   // [CALIBRATION DISABLED] — commented out for now, do not delete.
@@ -65,19 +66,21 @@ export default function Aloud() {
 
   useEffect(() => {
     // [CALIBRATION DISABLED] was: ... || eyesClosed || calibrating || (camOn && !camReady)) return;
-    if (!started || view === "spell" || speech.announce || showHelp || hovering || eyesClosed || (camOn && !camReady)) return;
+    // [HOVER-DWELL DISABLED] `hovering` removed from this condition and the deps.
+    if (!started || view === "spell" || speech.announce || showHelp || eyesClosed || (camOn && !camReady)) return;
     const n = targets.length;
     if (!n) return;
     const id = setInterval(() => {
       setFocusIdx((i) => (i == null ? 0 : (i + 1) % n));
     }, SCAN_MS);
     return () => clearInterval(id);
-  }, [started, view, speech.announce, showHelp, hovering, eyesClosed, camOn, camReady, targets.length]);
+  }, [started, view, speech.announce, showHelp, eyesClosed, camOn, camReady, targets.length]);
 
   const select = useCallback((item) => {
     if (!item) return;
     setFocusIdx(null);
-    setDwellLocked(true);
+    // [HOVER-DWELL DISABLED]
+    // setDwellLocked(true);
     switch (item.type) {
       case "cat": setView(item.id); break;
       case "spell": setView("spell"); break;
@@ -92,7 +95,8 @@ export default function Aloud() {
   }, [focusIdx, targets, select]);
 
   const moveFocus = useCallback((dir) => {
-    setHovering(false);
+    // [HOVER-DWELL DISABLED]
+    // setHovering(false);
     const n = targets.length;
     if (!n) return;
     setFocusIdx((i) => {
@@ -154,7 +158,8 @@ export default function Aloud() {
   const renderChoice = (item, extraClass) => {
     const idx = targets.indexOf(item);
     const isFocus = idx === focusIdx;
-    const isDwell = isFocus && hovering && !dwellLocked;
+    // [HOVER-DWELL DISABLED]
+    // const isDwell = isFocus && hovering && !dwellLocked;
     const cls = [
       "choice",
       item.type === "say" ? "is-word" : "",
@@ -163,7 +168,8 @@ export default function Aloud() {
       item.ghost ? "ghost" : "",
       item.urgent ? "urgent" : "",
       isFocus ? "focus" : "",
-      isDwell ? "dwell" : "",
+      // [HOVER-DWELL DISABLED]
+      // isDwell ? "dwell" : "",
       extraClass || "",
     ].join(" ");
 
@@ -176,15 +182,20 @@ export default function Aloud() {
         key={item.key}
         className={cls}
         data-cat={catKey}
-        onMouseEnter={() => { if (camLoading || (camOn && camReady)) return; setFocusIdx(idx); setHovering(true); }}
-        onMouseLeave={() => { setHovering(false); setDwellLocked(false); }}
-        onClick={() => { if (camLoading || (camOn && camReady)) return; select(item); }}
+        // [HOVER-DWELL DISABLED] — hover is CSS-only (.choice:hover); a resting cursor must not freeze scanning.
+        // onMouseEnter={() => { if (camLoading || (camOn && camReady)) return; setFocusIdx(idx); setHovering(true); }}
+        // onMouseLeave={() => { setHovering(false); setDwellLocked(false); }}
+        // Mouse clicks work even while eye control is on.
+        // was: onClick={() => { if (camLoading || (camOn && camReady)) return; select(item); }}
+        onClick={() => select(item)}
         aria-label={item.label}
       >
         <span className="c-ico"><LIcon name={item.icon} size={item.type === "cat" ? 30 : 26} /></span>
         <span className="c-label">{item.label}</span>
         {item.sub && <span className="c-sub">{item.sub}</span>}
+        {/* [HOVER-DWELL DISABLED]
         <span className="dwell-bar" onAnimationEnd={() => { if (isDwell && !camLoading) select(item); }} />
+        */}
       </button>
     );
   };
@@ -230,7 +241,7 @@ export default function Aloud() {
           </main>
 
           <footer className="hint">
-            {camOn ? <><span className="live" /> The highlight moves on its own · take a long blink to select</> : <>Hover to dwell, or use <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> then <kbd>Space</kbd></>}
+            {camOn ? <><span className="live" /> The highlight moves on its own · take a long blink or click to select</> : <>Click a choice, or use <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> then <kbd>Space</kbd></>}
           </footer>
         </>
       )}
@@ -266,19 +277,23 @@ export default function Aloud() {
 }
 
 function Announce({ data, speaking, onDone }) {
-  const [dwell, setDwell] = useState(false);
+  // [HOVER-DWELL DISABLED] — hovering no longer auto-clicks "I got help".
+  // const [dwell, setDwell] = useState(false);
   return (
     <div className={`announce ${data.urgent ? "urgent" : ""}`}>
       <div className={`a-pulse ${speaking ? "on" : ""}`} aria-hidden><span /><span /><span /><span /><span /></div>
       <p className="a-text">{data.text}</p>
       <button
         className="a-done"
-        onMouseEnter={() => setDwell(true)}
-        onMouseLeave={() => setDwell(false)}
+        // [HOVER-DWELL DISABLED]
+        // onMouseEnter={() => setDwell(true)}
+        // onMouseLeave={() => setDwell(false)}
         onClick={onDone}
       >
         <LIcon name="Check" size={22} stroke={2.2} /> I got help
+        {/* [HOVER-DWELL DISABLED]
         {dwell && <span className="dwell-bar" onAnimationEnd={onDone} />}
+        */}
       </button>
       <span className="a-hint">This will keep playing until you long-blink again — or choose <b>I got help</b>.</span>
     </div>
@@ -286,7 +301,8 @@ function Announce({ data, speaking, onDone }) {
 }
 
 function Intro({ onBegin }) {
-  const [dwell, setDwell] = useState(false);
+  // [HOVER-DWELL DISABLED] — hovering no longer auto-clicks Begin.
+  // const [dwell, setDwell] = useState(false);
   return (
     <div className="intro">
       <h1 className="i-mark">Aloud<span className="dot">.</span></h1>
@@ -294,12 +310,15 @@ function Intro({ onBegin }) {
       <div className="i-go">
         <button
           className="begin"
-          onMouseEnter={() => setDwell(true)}
-          onMouseLeave={() => setDwell(false)}
+          // [HOVER-DWELL DISABLED]
+          // onMouseEnter={() => setDwell(true)}
+          // onMouseLeave={() => setDwell(false)}
           onClick={onBegin}
         >
           Begin with eye control
+          {/* [HOVER-DWELL DISABLED]
           {dwell && <span className="dwell-bar" onAnimationEnd={onBegin} />}
+          */}
         </button>
       </div>
       <KeyStart onBegin={onBegin} />
