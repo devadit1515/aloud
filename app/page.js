@@ -29,8 +29,9 @@ export default function Aloud() {
   const [dwellLocked, setDwellLocked] = useState(false);
   const [eyesClosed, setEyesClosed] = useState(false);
   const [recents, setRecents] = useState([]);
-  const [calibrating, setCalibrating] = useState(false);
-  const [recalNonce, setRecalNonce] = useState(0);
+  // [CALIBRATION DISABLED] — commented out for now, do not delete.
+  // const [calibrating, setCalibrating] = useState(false);
+  // const [recalNonce, setRecalNonce] = useState(0);
 
   const speech = useSpeech();
   const spellRef = useRef(null);
@@ -63,14 +64,15 @@ export default function Aloud() {
   useEffect(() => { setFocusIdx(started ? 0 : null); }, [view, started]);
 
   useEffect(() => {
-    if (!started || view === "spell" || speech.announce || showHelp || hovering || eyesClosed || calibrating || (camOn && !camReady)) return;
+    // [CALIBRATION DISABLED] was: ... || eyesClosed || calibrating || (camOn && !camReady)) return;
+    if (!started || view === "spell" || speech.announce || showHelp || hovering || eyesClosed || (camOn && !camReady)) return;
     const n = targets.length;
     if (!n) return;
     const id = setInterval(() => {
       setFocusIdx((i) => (i == null ? 0 : (i + 1) % n));
     }, SCAN_MS);
     return () => clearInterval(id);
-  }, [started, view, speech.announce, showHelp, hovering, eyesClosed, calibrating, camOn, camReady, targets.length]);
+  }, [started, view, speech.announce, showHelp, hovering, eyesClosed, camOn, camReady, targets.length]);
 
   const select = useCallback((item) => {
     if (!item) return;
@@ -194,7 +196,8 @@ export default function Aloud() {
       {view === "spell" ? (
         <Speller
           ref={spellRef}
-          active={started && !speech.announce && !showHelp && !calibrating}
+          // [CALIBRATION DISABLED] was: active={started && !speech.announce && !showHelp && !calibrating}
+          active={started && !speech.announce && !showHelp}
           eyesClosed={eyesClosed}
           startAnnounce={speech.startAnnounce}
           say={speech.say}
@@ -236,9 +239,10 @@ export default function Aloud() {
         <BlinkCam
           onLongBlink={() => longBlinkRef.current()}
           onEyesClosed={(c) => setEyesClosed(c)}
-          onCalibrating={(c) => setCalibrating(c)}
+          // [CALIBRATION DISABLED]
+          // onCalibrating={(c) => setCalibrating(c)}
           onReady={() => setCamReady(true)}
-          recalNonce={recalNonce}
+          // recalNonce={recalNonce}
           say={speech.say}
           onError={(m) => { flashToast(m); setCamOn(false); setCamReady(false); }}
         />
@@ -256,7 +260,7 @@ export default function Aloud() {
 
       {speech.announce && <Announce data={speech.announce} speaking={speech.speaking} onDone={dismissAnnounce} />}
       {toast && <div className="toast">{toast}</div>}
-      {showHelp && <HelpSheet onClose={() => setShowHelp(false)} onRecalibrate={() => { setShowHelp(false); setRecalNonce((n) => n + 1); }} />}
+      {showHelp && <HelpSheet onClose={() => setShowHelp(false)} /* [CALIBRATION DISABLED] onRecalibrate={() => { setShowHelp(false); setRecalNonce((n) => n + 1); }} */ />}
     </div>
   );
 }
@@ -324,11 +328,13 @@ function HelpSheet({ onClose, onRecalibrate }) {
           <div className="st"><span className="si"><LIcon name="Keyboard" size={20} /></span><span><div className="stt">Spell anything</div><div className="std">Open “Spell it out” to compose a custom message — predictions do most of the work.</div></span></div>
         </div>
         <div className="sheet-actions">
+          {/* [CALIBRATION DISABLED] — commented out for now, do not delete.
           {onRecalibrate && (
             <button className="recal" onClick={onRecalibrate}>
               <LIcon name="ScanFace" size={17} stroke={2} /> Recalibrate eye control
             </button>
           )}
+          */}
           <button className="close" onClick={onClose}>Got it</button>
         </div>
       </div>

@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { icons } from "lucide-react";
 import { cues } from "@/lib/cues.mjs";
-import { computeThresholds, saveThresholds, loadThresholds, DEFAULTS } from "@/lib/blink.mjs";
+// [CALIBRATION DISABLED] — original import kept for when calibration returns.
+// import { computeThresholds, saveThresholds, loadThresholds, DEFAULTS } from "@/lib/blink.mjs";
+import { loadThresholds, DEFAULTS } from "@/lib/blink.mjs";
 
 function LIcon({ name, size = 26, stroke = 1.6 }) {
   const Cmp = icons[name] || icons.Circle;
@@ -18,65 +20,79 @@ const HOLD_MS = 600;
 const REFIRE_MS = 700;
 const DETECT_MS = 62;
 
-export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibrating, onReady, recalNonce = 0, say }) {
+// [CALIBRATION DISABLED] — original signature kept for when calibration returns.
+// export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibrating, onReady, recalNonce = 0, say }) {
+export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onReady, say }) {
   const videoRef = useRef(null);
   const [armed, setArmed] = useState(false);
   const [meter, setMeter] = useState(0);
   const [hold, setHold] = useState(0);
   const [fired, setFired] = useState(false);
-  const [phase, setPhaseState] = useState("detect");
+  // [CALIBRATION DISABLED]
+  // const [phase, setPhaseState] = useState("detect");
   const [minimized, setMinimized] = useState(false);
 
-  const closeRef = useRef(DEFAULTS.close);
-  const openRef = useRef(DEFAULTS.open);
+  // [CALIBRATION DISABLED] — no calibration step, so use thresholds saved by an
+  // earlier calibration if there are any, otherwise the defaults.
+  // const closeRef = useRef(DEFAULTS.close);
+  // const openRef = useRef(DEFAULTS.open);
+  const [saved] = useState(loadThresholds);
+  const closeRef = useRef((saved ?? DEFAULTS).close);
+  const openRef = useRef((saved ?? DEFAULTS).open);
   const phaseRef = useRef("detect");
-  const sampleRef = useRef(null);
-  const openS = useRef([]);
-  const closedS = useRef([]);
+  // [CALIBRATION DISABLED]
+  // const sampleRef = useRef(null);
+  // const openS = useRef([]);
+  // const closedS = useRef([]);
   const timers = useRef([]);
 
-  const cb = useRef({ onLongBlink, onEyesClosed, onError, onCalibrating, onReady, say });
-  cb.current = { onLongBlink, onEyesClosed, onError, onCalibrating, onReady, say };
+  // [CALIBRATION DISABLED]
+  // const cb = useRef({ onLongBlink, onEyesClosed, onError, onCalibrating, onReady, say });
+  // cb.current = { onLongBlink, onEyesClosed, onError, onCalibrating, onReady, say };
+  const cb = useRef({ onLongBlink, onEyesClosed, onError, onReady, say });
+  cb.current = { onLongBlink, onEyesClosed, onError, onReady, say };
 
-  const setPhase = (p) => { phaseRef.current = p; setPhaseState(p); };
+  // [CALIBRATION DISABLED]
+  // const setPhase = (p) => { phaseRef.current = p; setPhaseState(p); };
   const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
 
-  const finishCalibration = () => {
-    sampleRef.current = null;
-    const t = computeThresholds(openS.current, closedS.current) || DEFAULTS;
-    closeRef.current = t.close; openRef.current = t.open;
-    saveThresholds(t);
-    try { cues.select(); } catch {}
-    setPhase("instructions");
-    timers.current.push(setTimeout(() => { setPhase("detect"); cb.current.onCalibrating?.(false); }, 5000));
-  };
-
-  const skipCalibration = () => {
-    clearTimers();
-    sampleRef.current = null;
-    const saved = loadThresholds();
-    if (saved) { closeRef.current = saved.close; openRef.current = saved.open; }
-    try { cues.select(); } catch {}
-    setPhase("detect");
-    cb.current.onCalibrating?.(false);
-  };
-
-  const startCalibration = () => {
-    clearTimers();
-    openS.current = []; closedS.current = []; sampleRef.current = null;
-    cb.current.onCalibrating?.(true);
-    setPhase("open");
-    timers.current.push(setTimeout(() => { sampleRef.current = "open"; }, 700));
-    timers.current.push(setTimeout(() => {
-      sampleRef.current = null; setPhase("ready");
-    }, 2700));
-    timers.current.push(setTimeout(() => {
-      setPhase("closed");
-      try { cues.add(); } catch {}
-    }, 5000));
-    timers.current.push(setTimeout(() => { sampleRef.current = "closed"; }, 5700));
-    timers.current.push(setTimeout(finishCalibration, 7700));
-  };
+  // [CALIBRATION DISABLED] — commented out for now, do not delete.
+  // const finishCalibration = () => {
+  //   sampleRef.current = null;
+  //   const t = computeThresholds(openS.current, closedS.current) || DEFAULTS;
+  //   closeRef.current = t.close; openRef.current = t.open;
+  //   saveThresholds(t);
+  //   try { cues.select(); } catch {}
+  //   setPhase("instructions");
+  //   timers.current.push(setTimeout(() => { setPhase("detect"); cb.current.onCalibrating?.(false); }, 5000));
+  // };
+  //
+  // const skipCalibration = () => {
+  //   clearTimers();
+  //   sampleRef.current = null;
+  //   const saved = loadThresholds();
+  //   if (saved) { closeRef.current = saved.close; openRef.current = saved.open; }
+  //   try { cues.select(); } catch {}
+  //   setPhase("detect");
+  //   cb.current.onCalibrating?.(false);
+  // };
+  //
+  // const startCalibration = () => {
+  //   clearTimers();
+  //   openS.current = []; closedS.current = []; sampleRef.current = null;
+  //   cb.current.onCalibrating?.(true);
+  //   setPhase("open");
+  //   timers.current.push(setTimeout(() => { sampleRef.current = "open"; }, 700));
+  //   timers.current.push(setTimeout(() => {
+  //     sampleRef.current = null; setPhase("ready");
+  //   }, 2700));
+  //   timers.current.push(setTimeout(() => {
+  //     setPhase("closed");
+  //     try { cues.add(); } catch {}
+  //   }, 5000));
+  //   timers.current.push(setTimeout(() => { sampleRef.current = "closed"; }, 5700));
+  //   timers.current.push(setTimeout(finishCalibration, 7700));
+  // };
 
   useEffect(() => {
     let landmarker = null, stream = null, raf = 0, cancelled = false;
@@ -107,8 +123,9 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
         if (cancelled) return;
         setArmed(true);
         cb.current.onReady?.();
-        cb.current.onCalibrating?.(true);
-        setPhase("intro");
+        // [CALIBRATION DISABLED] — go straight to blink detection.
+        // cb.current.onCalibrating?.(true);
+        // setPhase("intro");
         loop();
       } catch (e) {
         console.error("[BlinkCam]", e);
@@ -130,8 +147,9 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
           const pct = Math.round(blink * 100);
           if (Math.abs(pct - lastMeterPct) >= 6) { lastMeterPct = pct; setMeter(blink); }
 
-          if (sampleRef.current === "open") openS.current.push(blink);
-          else if (sampleRef.current === "closed") closedS.current.push(blink);
+          // [CALIBRATION DISABLED]
+          // if (sampleRef.current === "open") openS.current.push(blink);
+          // else if (sampleRef.current === "closed") closedS.current.push(blink);
 
           if (phaseRef.current === "detect") {
             const CLOSE = closeRef.current, OPEN = openRef.current;
@@ -176,14 +194,17 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
     };
   }, []);
 
-  useEffect(() => {
-    if (recalNonce > 0) startCalibration();
-  }, [recalNonce]);
+  // [CALIBRATION DISABLED]
+  // useEffect(() => {
+  //   if (recalNonce > 0) startCalibration();
+  // }, [recalNonce]);
 
   const closing = hold > 0 && !fired;
-  const calibrating = phase !== "detect";
+  // [CALIBRATION DISABLED]
+  // const calibrating = phase !== "detect";
   return (
     <>
+      {/* [CALIBRATION DISABLED] — calibration dialog commented out, do not delete.
       {calibrating && (
         <div className="calib" role="dialog" aria-label="Eye control setup">
           <div className="calib-card">
@@ -225,6 +246,7 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
           </div>
         </div>
       )}
+      */}
 
       <div className={`cam-bubble ${armed ? "armed" : ""} ${closing ? "blinking" : ""} ${fired ? "fired" : ""} ${minimized ? "pinned" : ""}`}>
         <button className="cam-min" onClick={() => setMinimized(true)} aria-label="Minimize video" title="Minimize video">
@@ -235,7 +257,8 @@ export default function BlinkCam({ onLongBlink, onEyesClosed, onError, onCalibra
         <video ref={videoRef} muted playsInline />
         <div className="cam-state">
           <span className="ring" />
-          {!armed ? "Starting camera…" : calibrating ? "Calibrating…" : fired ? "Got it ✓" : closing ? "Hold…" : "Tracking your eyes"}
+          {/* [CALIBRATION DISABLED] was: {!armed ? "Starting camera…" : calibrating ? "Calibrating…" : fired ? "Got it ✓" : closing ? "Hold…" : "Tracking your eyes"} */}
+          {!armed ? "Starting camera…" : fired ? "Got it ✓" : closing ? "Hold…" : "Tracking your eyes"}
         </div>
         <button className="cam-expand" onClick={() => setMinimized(false)} aria-label="Show video" title="Show video">
           <LIcon name="Eye" size={17} stroke={2} />
