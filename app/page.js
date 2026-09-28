@@ -269,20 +269,23 @@ export default function Aloud() {
         </div>
       )}
 
-      {speech.announce && <Announce data={speech.announce} speaking={speech.speaking} onDone={dismissAnnounce} />}
+      {speech.announce && <Announce data={speech.announce} speaking={speech.speaking} onDone={dismissAnnounce} camOn={camOn} />}
       {toast && <div className="toast">{toast}</div>}
       {showHelp && <HelpSheet onClose={() => setShowHelp(false)} /* [CALIBRATION DISABLED] onRecalibrate={() => { setShowHelp(false); setRecalNonce((n) => n + 1); }} */ />}
     </div>
   );
 }
 
-function Announce({ data, speaking, onDone }) {
+function Announce({ data, speaking, onDone, camOn }) {
   // [HOVER-DWELL DISABLED] — hovering no longer auto-clicks "I got help".
   // const [dwell, setDwell] = useState(false);
   return (
     <div className={`announce ${data.urgent ? "urgent" : ""}`}>
       <div className={`a-pulse ${speaking ? "on" : ""}`} aria-hidden><span /><span /><span /><span /><span /></div>
       <p className="a-text">{data.text}</p>
+      {camOn
+        ? <div className="a-cancel"><LIcon name="Eye" size={20} stroke={2} /> Long-blink once more to stop this message</div>
+        : <div className="a-cancel"><LIcon name="Keyboard" size={20} stroke={2} /> Press <kbd>Space</kbd> to stop this message</div>}
       <button
         className="a-done"
         // [HOVER-DWELL DISABLED]
@@ -295,7 +298,7 @@ function Announce({ data, speaking, onDone }) {
         {dwell && <span className="dwell-bar" onAnimationEnd={onDone} />}
         */}
       </button>
-      <span className="a-hint">This will keep playing until you long-blink again — or choose <b>I got help</b>.</span>
+      <span className="a-hint">It repeats until you stop it — or click <b>I got help</b>.</span>
     </div>
   );
 }

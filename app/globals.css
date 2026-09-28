@@ -316,6 +316,9 @@ button { font-family: inherit; cursor: pointer; color: inherit; background: none
 .a-hint { position: relative; font-family: var(--main); font-size: 14px; color: var(--ink-faint); max-width: 46ch; line-height: 1.5; }
 .a-hint b { color: var(--ink-soft); }
 .a-hint kbd { font-family: var(--main); font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line-2); color: var(--ink-soft); }
+.a-cancel { position: relative; display: inline-flex; align-items: center; gap: 10px; font-family: var(--main); font-weight: 700; font-size: clamp(16px, 2vw, 20px); color: var(--ink); background: var(--clay-wash); box-shadow: inset 0 0 0 1px rgba(187,87,51,.22); padding: 12px 22px; border-radius: 999px; }
+.a-cancel svg { color: var(--clay); flex: none; }
+.a-cancel kbd { font-family: var(--main); font-weight: 700; font-size: 0.8em; padding: 2px 9px; border-radius: 6px; border: 1px solid var(--line-2); background: var(--paper-lift); }
 
 @media (max-width: 720px) {
   .choices[data-cols="3"], .choices[data-cols="4"] { grid-template-columns: repeat(2, 1fr); }
