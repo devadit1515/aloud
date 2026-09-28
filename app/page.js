@@ -5,9 +5,11 @@ import dynamic from "next/dynamic";
 import { icons } from "lucide-react";
 import { CATEGORIES, WORDS } from "@/lib/board";
 import { useSpeech } from "@/lib/useSpeech";
+import { loadTelegramConfig, sendToTelegram } from "@/lib/telegram";
 import Speller from "@/components/Speller";
 
 const BlinkCam = dynamic(() => import("@/components/BlinkCam"), { ssr: false });
+const TelegramSetup = dynamic(() => import("@/components/TelegramSetup"), { ssr: false });
 
 function LIcon({ name, size = 30, stroke = 1.5 }) {
   const Cmp = icons[name] || icons.Circle;
@@ -29,15 +31,36 @@ export default function Aloud() {
   const [dwellLocked, setDwellLocked] = useState(false);
   const [eyesClosed, setEyesClosed] = useState(false);
   const [recents, setRecents] = useState([]);
-  const [calibrating, setCalibrating] = useState(false);
-  const [recalNonce, setRecalNonce] = useState(0);
+  // [CALIBRATION DISABLED] — commented out for now, do not delete.
+  // const [calibrating, setCalibrating] = useState(false);
+  // const [recalNonce, setRecalNonce] = useState(0);
+
+  const [showTelegram, setShowTelegram] = useState(false);
+  const [tgConfigured, setTgConfigured] = useState(false);
+  const tgConfigRef = useRef(null);
 
   const speech = useSpeech();
   const spellRef = useRef(null);
 
+  // Load Telegram config on mount and listen for changes
+  useEffect(() => {
+    const cfg = loadTelegramConfig();
+    tgConfigRef.current = cfg;
+    setTgConfigured(!!cfg);
+  }, []);
+
   const pushRecent = useCallback((t) => {
     setRecents((r) => [t, ...r.filter((x) => x !== t)].slice(0, 5));
   }, []);
+
+  // Send every spoken message to Telegram
+  const lastTgText = useRef("");
+  useEffect(() => {
+    if (!speech.announce?.text || speech.announce.text === lastTgText.current) return;
+    lastTgText.current = speech.announce.text;
+    const cfg = tgConfigRef.current || loadTelegramConfig();
+    if (cfg) sendToTelegram(speech.announce.text, cfg);
+  }, [speech.announce]);
 
   const dismissAnnounce = useCallback(() => {
     const rt = speech.announce?.returnTo || "home";
@@ -63,14 +86,15 @@ export default function Aloud() {
   useEffect(() => { setFocusIdx(started ? 0 : null); }, [view, started]);
 
   useEffect(() => {
-    if (!started || view === "spell" || speech.announce || showHelp || hovering || eyesClosed || calibrating || (camOn && !camReady)) return;
+    // [CALIBRATION DISABLED] — calibrating condition removed; restore it when calibration returns.
+    if (!started || view === "spell" || speech.announce || showHelp || hovering || eyesClosed || (camOn && !camReady)) return;
     const n = targets.length;
     if (!n) return;
     const id = setInterval(() => {
       setFocusIdx((i) => (i == null ? 0 : (i + 1) % n));
     }, SCAN_MS);
     return () => clearInterval(id);
-  }, [started, view, speech.announce, showHelp, hovering, eyesClosed, calibrating, camOn, camReady, targets.length]);
+  }, [started, view, speech.announce, showHelp, hovering, eyesClosed, camOn, camReady, targets.length]);
 
   const select = useCallback((item) => {
     if (!item) return;
@@ -135,6 +159,30 @@ export default function Aloud() {
 
   function flashToast(m) { setToast(m); setTimeout(() => setToast(""), 4000); }
 
+  const handleTgConfigured = useCallback(() => {
+    const cfg = loadTelegramConfig();
+    tgConfigRef.current = cfg;
+    setTgConfigured(!!cfg);
+    setShowTelegram(false);
+    // Now actually start
+    setStarted(true);
+    setCamOn(true);
+    speech.primeSpeech();
+  }, [speech]);
+
+  const handleTgSkip = useCallback(() => {
+    setShowTelegram(false);
+    setStarted(true);
+    setCamOn(true);
+    speech.primeSpeech();
+  }, [speech]);
+
+  if (!started && showTelegram) {
+    return (
+      <TelegramSetup onConfigured={handleTgConfigured} onSkip={handleTgSkip} />
+    );
+  }
+
   if (!started) {
     return (
       <Intro
@@ -145,9 +193,7 @@ export default function Aloud() {
         }}
       />
     );
-  }
-
-  const camLoading = camOn && !camReady;
+  }  const camLoading = camOn && !camReady;
 
   const renderChoice = (item, extraClass) => {
     const idx = targets.indexOf(item);
@@ -163,7 +209,7 @@ export default function Aloud() {
       isFocus ? "focus" : "",
       isDwell ? "dwell" : "",
       extraClass || "",
-    ].join(" ");
+    ].join("");
 
     const catKey =
       item.id ||
@@ -174,15 +220,16 @@ export default function Aloud() {
         key={item.key}
         className={cls}
         data-cat={catKey}
-        onMouseEnter={() => { if (camLoading || (camOn && camReady)) return; setFocusIdx(idx); setHovering(true); }}
+        // Mouse control re-enabled: hover highlights, click selects.
+        onMouseEnter={() => { setFocusIdx(idx); setHovering(true); }}
         onMouseLeave={() => { setHovering(false); setDwellLocked(false); }}
-        onClick={() => { if (camLoading || (camOn && camReady)) return; select(item); }}
+        onClick={() => { setHovering(false); select(item); }}
         aria-label={item.label}
       >
         <span className="c-ico"><LIcon name={item.icon} size={item.type === "cat" ? 30 : 26} /></span>
         <span className="c-label">{item.label}</span>
         {item.sub && <span className="c-sub">{item.sub}</span>}
-        <span className="dwell-bar" onAnimationEnd={() => { if (isDwell && !camLoading) select(item); }} />
+        <span className="dwell-bar" onAnimationEnd={() => { if (isDwell) select(item); }} />
       </button>
     );
   };
@@ -194,7 +241,8 @@ export default function Aloud() {
       {view === "spell" ? (
         <Speller
           ref={spellRef}
-          active={started && !speech.announce && !showHelp && !calibrating}
+          // [CALIBRATION DISABLED] — `!calibrating` condition removed; restore it when calibration returns.
+          active={started && !speech.announce && !showHelp}
           eyesClosed={eyesClosed}
           startAnnounce={speech.startAnnounce}
           say={speech.say}
@@ -210,6 +258,13 @@ export default function Aloud() {
               <span className="eye-status" data-on={camOn}>
                 <LIcon name="Eye" size={15} stroke={2} /> {camOn ? "Eye control on" : "Camera off"}
               </span>
+              <button className="ghost-btn" onClick={() => {
+                tgConfigRef.current = loadTelegramConfig();
+                setTgConfigured(!!tgConfigRef.current);
+                setShowTelegram(true);
+              }}>
+                <LIcon name="MessageCircle" size={16} stroke={2} /> {tgConfigured ? "Telegram ✓" : "Connect Telegram"}
+              </button>
               <button className="ghost-btn" onClick={() => setShowHelp(true)}>
                 <LIcon name="HelpCircle" size={16} stroke={2} /> Help
               </button>
@@ -236,9 +291,10 @@ export default function Aloud() {
         <BlinkCam
           onLongBlink={() => longBlinkRef.current()}
           onEyesClosed={(c) => setEyesClosed(c)}
-          onCalibrating={(c) => setCalibrating(c)}
+          // [CALIBRATION DISABLED] — commented out for now, do not delete.
+          // onCalibrating={(c) => setCalibrating(c)}
           onReady={() => setCamReady(true)}
-          recalNonce={recalNonce}
+          // recalNonce={recalNonce}
           say={speech.say}
           onError={(m) => { flashToast(m); setCamOn(false); setCamReady(false); }}
         />
@@ -256,7 +312,13 @@ export default function Aloud() {
 
       {speech.announce && <Announce data={speech.announce} speaking={speech.speaking} onDone={dismissAnnounce} />}
       {toast && <div className="toast">{toast}</div>}
-      {showHelp && <HelpSheet onClose={() => setShowHelp(false)} onRecalibrate={() => { setShowHelp(false); setRecalNonce((n) => n + 1); }} />}
+      {showHelp && <HelpSheet onClose={() => setShowHelp(false)} /* [CALIBRATION DISABLED] onRecalibrate={() => { setShowHelp(false); setRecalNonce((n) => n + 1); }} */ />}
+      {showTelegram && (
+        <TelegramSetup
+          onConfigured={handleTgConfigured}
+          onSkip={() => setShowTelegram(false)}
+        />
+      )}
     </div>
   );
 }
@@ -297,6 +359,7 @@ function Intro({ onBegin }) {
           Begin with eye control
           {dwell && <span className="dwell-bar" onAnimationEnd={onBegin} />}
         </button>
+        <p className="i-sub" style={{fontSize: '0.75rem', opacity: 0.5, marginTop: '0.5rem'}}>Telegram setup coming soon</p>
       </div>
       <KeyStart onBegin={onBegin} />
     </div>
@@ -324,11 +387,13 @@ function HelpSheet({ onClose, onRecalibrate }) {
           <div className="st"><span className="si"><LIcon name="Keyboard" size={20} /></span><span><div className="stt">Spell anything</div><div className="std">Open “Spell it out” to compose a custom message — predictions do most of the work.</div></span></div>
         </div>
         <div className="sheet-actions">
+          {/* [CALIBRATION DISABLED] — commented out for now, do not delete.
           {onRecalibrate && (
             <button className="recal" onClick={onRecalibrate}>
               <LIcon name="ScanFace" size={17} stroke={2} /> Recalibrate eye control
             </button>
           )}
+          */}
           <button className="close" onClick={onClose}>Got it</button>
         </div>
       </div>
